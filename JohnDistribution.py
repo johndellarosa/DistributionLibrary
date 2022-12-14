@@ -628,7 +628,7 @@ class General_Discrete_Distribution():
             return General_Discrete_Distribution(lambda x: self.PMF(np.power(x, 1 / power)),
                                                  lambda x: self.CDF(np.power(x, 1 / power)))
 
-    def sqrt(self,n):
+    def root(self,n):
         assert type(n) == int
         new_dist =  General_Discrete_Distribution(lambda x: self.PMF(np.power(x,n)),
                                                  lambda x: self.CDF(np.power(x, n)))
