@@ -124,6 +124,10 @@ class Continuous_Distribution:
             x += stepsize
         return x
 
+    def Sample(self):
+        U = np.random.uniform()
+        return self.Quantile(U)
+
     def plot(self, min_x, max_x, interval):
         x = np.arange(min_x, max_x + interval, interval)
         y = np.array([self.PDF(i) for i in x])
@@ -608,6 +612,32 @@ class General_Discrete_Distribution():
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    def power(self,exponent:int):
+        if exponent % 2:
+            return General_Discrete_Distribution(lambda x: 2*self.PMF(np.power(x,1/exponent)), lambda x: 2*self.CDF(np.power(x,1/exponent))-0.5)
+        else:
+            return General_Discrete_Distribution(lambda x: self.PMF(np.power(x, 1 / exponent)),
+                                                 lambda x:  self.CDF(np.power(x, 1 / exponent)))
+
+    def __pow__(self, power, modulo=None):
+        assert type(power) == int
+        if power % 2:
+            return General_Discrete_Distribution(lambda x: 2 * self.PMF(np.power(x, 1 / power)),
+                                                 lambda x: 2 * self.CDF(np.power(x, 1 / power)) - 0.5)
+        else:
+            return General_Discrete_Distribution(lambda x: self.PMF(np.power(x, 1 / power)),
+                                                 lambda x: self.CDF(np.power(x, 1 / power)))
+
+    def sqrt(self,n):
+        assert type(n) == int
+        new_dist =  General_Discrete_Distribution(lambda x: self.PMF(np.power(x,n)),
+                                                 lambda x: self.CDF(np.power(x, n)))
+        return new_dist
+
+    def __abs__(self):
+        new_dist = General_Discrete_Distribution(lambda x: np.where(x!=0,self.PMF(x)+self.PMF(-x),self.PMF(0))[0]
+                                                 )
+        return new_dist
 
     '''
     Not sure how to handle cdf
@@ -618,7 +648,7 @@ class General_Discrete_Distribution():
 
 class General_Continuous_Distribution():
 
-    def __init__(self, PDF, CDF):
+    def __init__(self, PDF, CDF=lambda x:0):
         self.PDF = PDF
         self.CDF = CDF
         self.mean = 0
@@ -645,9 +675,30 @@ class General_Continuous_Distribution():
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    def __abs__(self):
+        new_dist = General_Continuous_Distribution(lambda x: self.PDF(x)+self.PDF(-x),
+                                                 )
+        return new_dist
+
+
+
+
+    # def exp(self):
+    #     new_dist =
+
 
     '''
     Not sure how to handle cdf
     '''
     # def pointwise_multiplication(self,other):
     #     return General_Discrete_Distribution(lambda x: self.PMF(x)*other.PMF(x))
+
+    def Quantile(self, p, min_x=0, stepsize=0.01):
+        x = min_x  # change to min of support
+        while (self.CDF(x) < p):
+            x += stepsize
+        return x
+
+    def Sample(self):
+        U = np.random.uniform()
+        return self.Quantile(U)
