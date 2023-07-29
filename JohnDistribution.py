@@ -150,6 +150,10 @@ class Continuous_Distribution:
     def calculate_central_moment(self, k):
         return scipy.integrate.quad(lambda x: (x - self.mean) ** k * self.PDF(x), -np.inf, np.inf,limit=100)[0]
 
+    @staticmethod
+    def param_requirements():
+        print('hello')
+        return ''
 
 class Gaussian(Continuous_Distribution):
     def __init__(self, mu, sigma):
@@ -178,7 +182,13 @@ class Gaussian(Continuous_Distribution):
 
     def MGF(self, t):
         return np.exp(self.mu * t + self.sigma**2 * t**2/2)
-
+    @staticmethod
+    def param_requirements():
+        print('hello')
+        return '''
+        Param 1 (mu): float (-infty, infty)
+        Param 2 (sigma): float (0, infty)
+        '''
 
 class Cauchy(Continuous_Distribution):
     def __init__(self, gamma, x_0):
@@ -193,10 +203,16 @@ class Cauchy(Continuous_Distribution):
 
     def CDF(self, x):
         return 1 / np.pi * np.arctan((x - self.x_0) / self.gamma)
-
+    @staticmethod
+    def param_requirements():
+        print('hello')
+        return '''
+        Param 1 (Gamma): float (0, infty)
+        Param 2 (x_0): float (-infty, infty)
+        '''
 
 class Exponential(Continuous_Distribution):
-    def __init__(self, beta):
+    def __init__(self, beta, *args):
         self.beta = beta
         self.mean = beta
         self.variance = beta ** 2
@@ -219,24 +235,36 @@ class Exponential(Continuous_Distribution):
     def Sample(self):
         U = np.random.uniform()
         return self.Quantile(U)
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (Beta): float (0, infty)
+        '''
 
 class Erlang(Continuous_Distribution):
     def __init__(self, k, param_lambda):
-        self.k = k
+        if (not (type(k) == int or float(k).is_integer())) or k < 1:
+            self.PDF = lambda x:0
+        self.k = int(k)
         self.param_lambda = param_lambda
 
     def __repr__(self):
         return f"Erlang Distribution: k={self.k}, lambda={self.param_lambda}"
 
     def PDF(self, x):
-        if x >= 0:
+
+        if x >= 0 :
             return (self.param_lambda ** self.k) * (x ** (self.k - 1)) * np.exp(
                 -self.param_lambda * x) / math.factorial(self.k - 1)
         else:
             return 0
 
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (k): int [1,infty)
+        Param 2 (lambda): float (0, infty)
+        '''
 class Gamma(Continuous_Distribution):
     def __init__(self, alpha, beta):
         if (alpha <= 0):
@@ -259,7 +287,12 @@ class Gamma(Continuous_Distribution):
                 -self.beta * x)
         else:
             return 0
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (alpha): float (0, infty)
+        Param 2 (beta): float (0, infty)
+        '''
 
 class Inverse_Gamma(Continuous_Distribution):
     def __init__(self, alpha, beta):
@@ -287,7 +320,12 @@ class Inverse_Gamma(Continuous_Distribution):
                 -self.beta / x)
         else:
             return 0
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (alpha): float (0, infty)
+        Param 2 (beta): float (0, infty)
+        '''
 
 class Log_Normal(Continuous_Distribution):
     def __init__(self, mu, sigma):
@@ -305,7 +343,12 @@ class Log_Normal(Continuous_Distribution):
                 -(np.log(x) - self.mu) ** 2 / (2 * self.sigma ** 2))
         else:
             return 0
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (mu): float (-infty, infty)
+        Param 2 (sigma): float (0, infty)
+        '''
 
 class Levy(Continuous_Distribution):
     def __init__(self, mu, c):
@@ -321,7 +364,12 @@ class Levy(Continuous_Distribution):
 
     def PDF(self, x, *args, **kwargs):
         return np.sqrt(self.c / (2 * np.pi)) * np.exp(-self.c / (2 * (x - self.mu))) / ((x - self.mu) ** (3 / 2))
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (mu): float (-infnty, infty)
+        Param 2 (c): float (0, infty)
+        '''
 
 class Laplace(Continuous_Distribution):
     def __init__(self, mu, b):
@@ -344,6 +392,12 @@ class Laplace(Continuous_Distribution):
 
     def Quantile(self, p):
         return self.mu - self.b * np.sign(p - 0.5) * np.log(1 - 2 * abs(p - 0.5))
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (mu): float (-infty, infty)
+        Param 2 (b): float (0, infty)
+        '''
 
 class Pareto(Continuous_Distribution):
 
@@ -351,7 +405,12 @@ class Pareto(Continuous_Distribution):
         self.x_m = x_m
         self.alpha = alpha
         self.mean = np.where(alpha > 1, alpha*x_m/(alpha-1),np.inf)
-
+    @staticmethod
+    def param_requirements():
+        return '''
+        Param 1 (x_m): float (0, infty)
+        Param 2 (alpha): float (0, infty)
+        '''
 
 
 class Beta_Binomial(Discrete_Distribution):

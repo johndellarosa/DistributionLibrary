@@ -10,6 +10,62 @@ import JohnDistribution as jd
 # data = pd.read_csv("precious_metals_prices_2018_2021.csv")
 # data['DateTime'] = pd.to_datetime(data['DateTime'])
 
+continuous_distribution_dict = {
+    'Normal':jd.Gaussian,
+    'Cauchy':jd.Cauchy,
+    'Exponential':jd.Exponential,
+    'Erlang':jd.Erlang,
+    'Gamma':jd.Gamma,
+    'Inverse Gamma':jd.Inverse_Gamma,
+    'Log Normal':jd.Log_Normal,
+    'Levy':jd.Levy,
+    'Laplace':jd.Laplace,
+    'Pareto':jd.Pareto,
+}
+
+param_requirements = {
+    'Normal':'''
+        Param 1 (mu): float (-infty, infty)
+        Param 2 (sigma): float (0, infty)
+        ''',
+    'Cauchy':'''
+        Param 1 (Gamma): float (0, infty)
+        Param 2 (x_0): float (-infty, infty)
+        ''',
+    'Exponential':'''
+        Param 1 (Beta): float (0, infty)
+        ''',
+    'Erlang':'''
+        Param 1 (k): int [1,infty)
+        Param 2 (lambda): float (0, infty)
+        ''',
+    'Gamma':'''
+        Param 1 (alpha): float (0, infty)
+        Param 2 (beta): float (0, infty)
+        ''',
+    'Inverse Gamma':'''
+        Param 1 (alpha): float (0, infty)
+        Param 2 (beta): float (0, infty)
+        ''',
+    'Log Normal':'''
+        Param 1 (mu): float (-infty, infty)
+        Param 2 (sigma): float (0, infty)
+        ''',
+    'Levy':'''
+        Param 1 (mu): float (-infnty, infty)
+        Param 2 (c): float (0, infty)
+        ''',
+    'Laplace':'''
+        Param 1 (mu): float (-infty, infty)
+        Param 2 (b): float (0, infty)
+        ''',
+    'Pareto':'''
+        Param 1 (x_m): float (0, infty)
+        Param 2 (alpha): float (0, infty)
+        '''
+}
+
+
 dist = jd.Gaussian(0,1)
 
 min_x = -5
@@ -56,24 +112,28 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[
-                        # html.Div(
-                        #     className="menu-title",
-                        #     children="Metal"
-                        # ),
-                        # dcc.Dropdown(
-                        #     id="metal-filter",
-                        #     className="dropdown",
-                        #     options=[{"label": metal, "value": metal} for metal in data.columns[1:]],
-                        #     clearable=False,
-                        #     value="Gold"
-                        # )
+                        html.Div(
+                            className="menu-title",
+                            children="Distribution"
+                        ),
+                        dcc.Dropdown(
+                            id="dist-basis",
+                            className="dropdown",
+                            options=[{"label": dist, "value": dist} for dist in continuous_distribution_dict.keys()],
+                            clearable=False,
+                            value="Normal"
+                        )
                     ]
                 ),
                 html.Div(
                     children=[
+
+                        html.Div(id='param-restrictions',children=''),
                         html.Div(
                             className="menu-title",
-                            children="Mean"
+                            children=["Param 1",
+dcc.Input(id="input1", type="text", placeholder='0', style={'marginRight': '10px'},value='0'),
+                                      ]
                         ),
                         # dcc.DatePickerRange(
                         #     id='date-range',
@@ -83,13 +143,33 @@ app.layout = html.Div(
                         #     end_date=data.DateTime.min().date()
                         #
                         # )
-                        dcc.Input(id="input1", type="text", placeholder='0', style={'marginRight': '10px'},value='0'),
+
                         html.Div(
                             className='menu-title',
-                            children='Variance'
+                            children=['Param 2',
+                                      dcc.Input(id="input2", type="text", placeholder='1',
+                                                style={'marginRight': '10px'}, value='1'),
+
+                                      ]
                         ),
-                        dcc.Input(id="input2", type="text", placeholder='1', style={'marginRight': '10px'},value='1'),
-                    ]
+                        html.Div(
+                            className='menu-title',
+                            children=['Min x',
+                                      dcc.Input(id="minX", type="text", placeholder='-5',
+                                                style={'marginRight': '10px'}, value='-5'),
+
+                                      ]
+                        ),
+                        html.Div(
+                            className='menu-title',
+                            children=['Max x',
+                                      dcc.Input(id="maxX", type="text", placeholder='5',
+                                                style={'marginRight': '10px'}, value='5'),
+
+                                      ]
+                        ),
+
+              ]
                 )
             ]
         ),
@@ -105,14 +185,20 @@ app.layout = html.Div(
 )
 
 @app.callback(
+    Output('param-restrictions','children'),
     Output("price-chart", "figure"),
+    Input('dist-basis','value'),
     Input("input1", "value"),
-    Input('input2','value')
+    Input('input2','value'),
+    Input('minX','value'),
+    Input('maxX','value')
 )
-def update_chart(value1,value2):
+def update_chart(dist_type,value1,value2,minX,maxX):
     try:
         value1 = float(value1)
         value2 = float(value2)
+        minX = float(minX)
+        maxX = float(maxX)
         print("success")
     except:
         print(value1)
@@ -121,58 +207,74 @@ def update_chart(value1,value2):
 
     # filtered_data = data.loc[(data.DateTime >= start_date) & (data.DateTime <= end_date)]
 
-    dist = jd.Gaussian(value1, value2)
+    try:
+        dist = continuous_distribution_dict[dist_type](value1, value2)
 
-    min_x = value1-2*value2
-    max_x = value1+2*value2
-    interval = .01
 
-    x = np.arange(min_x, max_x + interval, interval)
-    y = np.array([dist.PDF(i) for i in x])
-    data = pd.DataFrame(index=x)
+        interval = .01
 
-    data['y'] = y
-    # print(data)
+        x = np.arange(minX, maxX, interval)
+        y = np.array([dist.PDF(i) for i in x])
+        data = pd.DataFrame(index=x)
 
-    fig = px.line(
-        data,
-        title="Gaussian",
-        x=data.index,
-        y=y,
-        color_discrete_map={"Gold": "gold"}
-    )
+        data['y'] = y
+        # print(data)
 
-    # Create a plotly plot for use by dcc.Graph().
-    # fig = px.line(
-    #     filtered_data,
-    #     title="Precious Metal Prices 2018-2021",
-    #     x="DateTime",
-    #     y=[metal],
-    #     color_discrete_map={
-    #         "Platinum": "#E5E4E2",
-    #         "Gold": "gold",
-    #         "Silver": "silver",
-    #         "Palladium": "#CED0DD",
-    #         "Rhodium": "#E2E7E1",
-    #         "Iridium": "#3D3C3A",
-    #         "Ruthenium": "#C9CBC8"
-    #     }
-    # )
+        fig = px.line(
+            data,
+            title=f"{dist_type}",
+            x=data.index,
+            y=y,
+            color_discrete_map={"Gold": "gold"}
+        )
 
-    fig.update_layout(
-        template="plotly_dark",
-        xaxis_title="x",
-        yaxis_title="f(x)",
-        font=dict(
-            family="Verdana, sans-serif",
-            size=18,
-            color="white"
-        ),
-    )
-    print(value1)
-    print(value2)
-    print('returning fig')
-    return fig
+        # Create a plotly plot for use by dcc.Graph().
+        # fig = px.line(
+        #     filtered_data,
+        #     title="Precious Metal Prices 2018-2021",
+        #     x="DateTime",
+        #     y=[metal],
+        #     color_discrete_map={
+        #         "Platinum": "#E5E4E2",
+        #         "Gold": "gold",
+        #         "Silver": "silver",
+        #         "Palladium": "#CED0DD",
+        #         "Rhodium": "#E2E7E1",
+        #         "Iridium": "#3D3C3A",
+        #         "Ruthenium": "#C9CBC8"
+        #     }
+        # )
+
+        fig.update_layout(
+            template="seaborn",
+            xaxis_title="x",
+            yaxis_title="f(x)",
+            font=dict(
+                family="Verdana, sans-serif",
+                size=18,
+                color="black"
+            ),
+        )
+        print(value1)
+        print(value2)
+
+        print(param_requirements[dist_type])
+        print('returning fig')
+        return param_requirements[dist_type] ,fig
+
+    except Exception as e:
+        print('error')
+        print(e)
+        #raise dash.exceptions.PreventUpdate
+        fig = px.line(
+
+            title=f"{dist_type}",
+            x=0,
+            y=0,
+            color_discrete_map={"Gold": "gold"}
+        )
+        return param_requirements[dist_type], fig
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
